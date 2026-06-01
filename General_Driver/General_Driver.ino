@@ -120,7 +120,9 @@ void loop() {
   serialCtrl();
   server.handleClient();
 
-  moduleType_Gimbal();
+  if (moduleType == 2) {
+    moduleType_Gimbal();
+  }
 
   oledInfoUpdate();
 
