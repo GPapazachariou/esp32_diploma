@@ -1,3 +1,26 @@
+// Servo control object (moved here from RoArm-M2_module.h).
+SMS_STS st;
+
+struct ServoFeedback {
+  bool status;
+  int pos;
+  int speed;
+  int load;
+  float voltage;
+  float current;
+  float temper;
+  byte mode;
+};
+
+void servoTorqueCtrl(byte servoID, u8 enableCMD) {
+  st.EnableTorque(servoID, enableCMD);
+}
+
+void gimbalServoInit() {
+  Serial1.begin(1000000, SERIAL_8N1, S_RXD, S_TXD);
+  st.pSerial = &Serial1;
+}
+
 u8 gimbalID[2] = {GIMBAL_PAN_ID, GIMBAL_TILT_ID};
 
 s16 gimbalPos[2];
@@ -27,8 +50,9 @@ void gimbalCtrlSimple(float Xinput, float Yinput, float spdInput, float accInput
   Xinput = constrainFloat(Xinput, -180, 180);
   Yinput = constrainFloat(Yinput, -30, 90);
 
-  gimbalPos[0] = 2047 + (int)round(map(Xinput, 0, 360, 0, 4095));
-  gimbalPos[1] = 2047 - (int)round(map(Yinput, 0, 360, 0, 4095));
+  // Fix: use signed range so negative pan angles map correctly.
+  gimbalPos[0] = 2047 + (int)round(map(Xinput, -180, 180, -2047, 2047));
+  gimbalPos[1] = 2047 - (int)round(map(Yinput, -30, 90, -341, 1024));
 
   gimbalSpd[0] = (int)round(map(spdInput, 0, 360, 0, 4095));
   gimbalSpd[1] = (int)round(map(spdInput, 0, 360, 0, 4095));
@@ -46,8 +70,9 @@ void gimbalCtrlMove(float Xinput, float Yinput, float spdInputX, float spdInputY
   spdInputX = constrain(spdInputX, 1, 2500);
   spdInputY = constrain(spdInputY, 1, 2500);
 
-  gimbalPos[0] = 2047 + (int)round(map(Xinput, 0, 360, 0, 4095));
-  gimbalPos[1] = 2047 - (int)round(map(Yinput, 0, 360, 0, 4095));
+  // Fix: use signed range so negative pan angles map correctly.
+  gimbalPos[0] = 2047 + (int)round(map(Xinput, -180, 180, -2047, 2047));
+  gimbalPos[1] = 2047 - (int)round(map(Yinput, -30, 90, -341, 1024));
 
   gimbalSpd[0] = spdInputX;
   gimbalSpd[1] = spdInputY;
@@ -59,21 +84,24 @@ void gimbalCtrlMove(float Xinput, float Yinput, float spdInputX, float spdInputY
 }
 
 
-//mapFloat(float value, float fromLow, float fromHigh, float toLow, float toHigh)
 float panAngleCompute(int inputPos) {
-  return mapFloat((inputPos - 2047), 0, 4095, 0, 360);
+  return mapFloat((inputPos - 2047), -2047, 2047, -180, 180);
 }
 
 float tiltAngleCompute(int inputPos) {
-  return mapFloat((2047 - inputPos), 0, 4095, 0, 360);
+  return mapFloat((2047 - inputPos), -1024, 341, -90, 30);
 }
 
+// Fix: hold current position instead of torque-toggling (servo drifts after torque re-enable).
 void gimbalCtrlStop() {
-  st.EnableTorque(GIMBAL_PAN_ID, 0);
-  st.EnableTorque(GIMBAL_TILT_ID, 0);
-  delay(SERVO_STOP_DELAY);
-  st.EnableTorque(GIMBAL_PAN_ID, 1);
-  st.EnableTorque(GIMBAL_TILT_ID, 1);
+  getGimbalFeedback();
+  gimbalPos[0] = gimbalFeedback[0].pos;
+  gimbalPos[1] = gimbalFeedback[1].pos;
+  gimbalSpd[0] = 0;
+  gimbalSpd[1] = 0;
+  gimbalAcc[0] = 0;
+  gimbalAcc[1] = 0;
+  st.SyncWritePosEx(gimbalID, 2, gimbalPos, gimbalSpd, gimbalAcc);
 }
 
 void getGimbalFeedback() {
@@ -86,8 +114,9 @@ void getGimbalFeedback() {
     gimbalFeedback[0].current = st.ReadCurrent(-1);
     gimbalFeedback[0].temper = st.ReadTemper(-1);
     gimbalFeedback[0].mode = st.ReadMode(GIMBAL_PAN_ID);
-  } else{
-    servoFeedback[0].status = false;
+  } else {
+    // Fix: was writing to servoFeedback[] (arm array) instead of gimbalFeedback[].
+    gimbalFeedback[0].status = false;
     if(InfoPrint == 1){
       jsonInfoHttp.clear();
       jsonInfoHttp["T"] = 1005;
@@ -108,8 +137,9 @@ void getGimbalFeedback() {
     gimbalFeedback[1].current = st.ReadCurrent(-1);
     gimbalFeedback[1].temper = st.ReadTemper(-1);
     gimbalFeedback[1].mode = st.ReadMode(GIMBAL_TILT_ID);
-  } else{
-    servoFeedback[1].status = false;
+  } else {
+    // Fix: was writing to servoFeedback[] (arm array) instead of gimbalFeedback[].
+    gimbalFeedback[1].status = false;
     if(InfoPrint == 1){
       jsonInfoHttp.clear();
       jsonInfoHttp["T"] = 1005;
@@ -180,19 +210,40 @@ void gimbalUserCtrl(int inputX, int inputY, int inputSpd) {
   else{
     gimbalCtrlSimple(goalX, goalY, inputSpd, 0);
     if(inputX == 0){
-      servoTorqueCtrl(GIMBAL_PAN_ID, 0);
-      delay(5);
-      servoTorqueCtrl(GIMBAL_PAN_ID, 1);
+      // Fix: removed torque-toggle + delay(5) pattern (blocking + causes drift).
       getGimbalFeedback();
       goalX = panAngleCompute(gimbalFeedback[0].pos);
     }
     if(inputY == 0){
-      servoTorqueCtrl(GIMBAL_TILT_ID, 0);
-      delay(5);
-      servoTorqueCtrl(GIMBAL_TILT_ID, 1);
+      // Fix: removed torque-toggle + delay(5) pattern (blocking + causes drift).
       getGimbalFeedback();
       goalY = tiltAngleCompute(gimbalFeedback[1].pos);
     }
   }
 
+}
+
+
+// Change a servo's ID (works with any ID including broadcast 254).
+void changeID(byte oldID, byte newID) {
+  st.unLockEprom(oldID);
+  st.writeByte(oldID, SMS_STS_ID, newID);
+  st.LockEprom(newID);
+  if(InfoPrint == 1) {
+    Serial.print("changeID: ");Serial.print(oldID);
+    Serial.print(" -> ");Serial.println(newID);
+  }
+}
+
+// Set the current position as the middle (zero) position of the servo.
+void setMiddlePos(byte inputID) {
+  st.CalibrationOfs(inputID);
+}
+
+// Write the P gain into the servo's EEPROM register.
+bool setServosPID(byte inputID, byte inputP) {
+  st.unLockEprom(inputID);
+  st.writeByte(inputID, ST_PID_P_ADDR, inputP);
+  st.LockEprom(inputID);
+  return true;
 }

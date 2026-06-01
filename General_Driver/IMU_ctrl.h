@@ -37,7 +37,7 @@ void updateIMUData() {
 
 
 void imuCalibration() {
-
+	Serial.println("{\"info\":\"IMU calibration not implemented\"}");
 }
 
 
@@ -69,9 +69,9 @@ void getIMUData() {
 }
 
 void getIMUOffset() {
-
+	Serial.println("{\"info\":\"IMU offset get not implemented\"}");
 }
 
 void setIMUOffset(int16_t inputX, int16_t inputY, int16_t inputZ) {
-
+	Serial.println("{\"info\":\"IMU offset set not implemented\"}");
 }
