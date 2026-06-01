@@ -42,11 +42,9 @@ void scanFlashContents() {
     
     File root = LittleFS.open("/");
     if (!root.isDirectory()) {
-    	if (InfoPrint == 1) {
-    		Serial.println("error: not a directory.");
-    		jsonInfoHttp["info"] = "error: not a directory.";
-    		return;
-    	}
+      Serial.println("error: not a directory.");
+      jsonInfoHttp["info"] = "error: not a directory.";
+      return;
     }
 
     jsonInfoHttp["info"] = "reading files and the first line";

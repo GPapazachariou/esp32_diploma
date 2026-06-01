@@ -140,10 +140,11 @@ float tiltAngleCompute(int inputPos) {
 }
 
 // Hold current position so the servo stays put instead of drifting.
+// Falls back to center (2047) if servo did not respond, to avoid commanding position 0 (extreme).
 void gimbalCtrlStop() {
   getGimbalFeedback();
-  gimbalPos[0] = gimbalFeedback[0].pos;
-  gimbalPos[1] = gimbalFeedback[1].pos;
+  gimbalPos[0] = gimbalFeedback[0].status ? gimbalFeedback[0].pos : 2047;
+  gimbalPos[1] = gimbalFeedback[1].status ? gimbalFeedback[1].pos : 2047;
   gimbalSpd[0] = 0;
   gimbalSpd[1] = 0;
   gimbalAcc[0] = 0;
