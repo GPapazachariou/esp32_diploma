@@ -19,8 +19,6 @@ StaticJsonDocument<512> jsonInfoHttp;
 #include <nvs_flash.h>
 #include <esp_system.h>
 #include <LittleFS.h>
-#include <WiFi.h>
-#include <WebServer.h>
 #include <Adafruit_SSD1306.h>
 #include <INA219_WE.h>
 #include <math.h>
@@ -35,9 +33,7 @@ StaticJsonDocument<512> jsonInfoHttp;
 #include "IMU_ctrl.h"
 #include "files_ctrl.h"
 #include "ugv_advance.h"      // baseInfoFeedback, changeHeartBeatDelay, etc.
-#include "wifi_ctrl.h"
 #include "uart_ctrl.h"        // jsPrint, serialCtrl, serial2Ctrl, heartBeatCtrl
-#include "http_server.h"      // WebServer server(80), initHttpWebServer
 
 
 void setup() {
@@ -75,7 +71,7 @@ void setup() {
   // ── LED GPIO 4 / 5 ───────────────────────────────────────────────────────
   led_pin_init();
 
-  // ── Flash filesystem (stores /wifiConfig.json) ───────────────────────────
+  // ── Flash filesystem (LittleFS — generic file storage) ───────────────────
   screenLine_3 = "Init LittleFS";
   oled_update();
   if (InfoPrint == 1) { Serial.println("Initialize LittleFS."); }
@@ -88,17 +84,14 @@ void setup() {
   gimbalServoInit();
   // Inits Serial1, checks each servo, centres both axes to 0°.
 
-  // ── WiFi ──────────────────────────────────────────────────────────────────
-  screenLine_3 = "WiFi init";
+  // ── Final status on OLED ──────────────────────────────────────────────────
+  // WiFi removed: this firmware is controlled solely over the Raspberry Pi
+  // GPIO UART (Serial2, GPIO 16/17) and USB serial (Serial).
+  screenLine_0 = "Gimbal Controller";
+  screenLine_1 = "RPi UART ready";
+  screenLine_2 = "";
+  screenLine_3 = "V:" + String(loadVoltage_V);
   oled_update();
-  if (InfoPrint == 1) { Serial.println("WiFi init."); }
-  initWifi();
-
-  // ── HTTP web server on port 80 ────────────────────────────────────────────
-  initHttpWebServer();
-
-  // ── Show AP SSID, password (or IP), voltage on OLED ──────────────────────
-  updateOledWifiInfo();
 
   lastCmdRecvTime = millis();  // start heartbeat timer after setup
 
@@ -112,9 +105,6 @@ void loop() {
 
   // Read JSON commands from Raspberry Pi via GPIO 16/17
   serial2Ctrl();
-
-  // Process any pending WiFi HTTP requests
-  server.handleClient();
 
   // Query both servo positions (~1 ms, non-blocking half-duplex UART read)
   getGimbalFeedback();

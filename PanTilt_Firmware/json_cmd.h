@@ -80,24 +80,6 @@
 // {"T":208,"name":"f.txt","lineNum":3}
 #define CMD_DELETE_LINE  208
 
-// ── WiFi ─────────────────────────────────────────────────────────────────────
-// {"T":401,"cmd":1}
-#define CMD_WIFI_ON_BOOT               401
-// {"T":402,"ssid":"GimbalCtrl","password":"12345678"}
-#define CMD_SET_AP                     402
-// {"T":403,"ssid":"YourWiFi","password":"pass"}
-#define CMD_SET_STA                    403
-// {"T":404,"ap_ssid":"x","ap_password":"x","sta_ssid":"x","sta_password":"x"}
-#define CMD_WIFI_APSTA                 404
-// {"T":405}
-#define CMD_WIFI_INFO                  405
-// {"T":406}
-#define CMD_WIFI_CONFIG_CREATE_BY_STATUS 406
-// {"T":407,"mode":1,...}
-#define CMD_WIFI_CONFIG_CREATE_BY_INPUT  407
-// {"T":408}
-#define CMD_WIFI_STOP                  408
-
 // ── Servo settings ────────────────────────────────────────────────────────────
 // {"T":501,"raw":2,"new":3}
 #define CMD_SET_SERVO_ID   501

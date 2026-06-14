@@ -6,6 +6,7 @@
 //   + serial2Ctrl() — reads JSON commands from Raspberry Pi on GPIO 16/17
 //   + heartBeatCtrl() — fixed (undefined currentTimeMillis → millis())
 //   - Removed: arm, motor, encoder, ESP-NOW, mission commands
+//   - Removed: all WiFi / web-server commands (RPi-UART-only control)
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Broadcast a JSON response to both USB serial and Raspberry Pi GPIO UART.
@@ -141,41 +142,6 @@ void jsonCmdReceiveHandler() {
     break;
   case CMD_DELETE_LINE:
     deleteSingleLine(jsonCmdReceive["name"], jsonCmdReceive["lineNum"]);
-    break;
-
-  // ── WiFi ──────────────────────────────────────────────────────────────────
-  case CMD_WIFI_ON_BOOT:
-    configWifiModeOnBoot(jsonCmdReceive["cmd"]);
-    break;
-  case CMD_SET_AP:
-    wifiModeAP(jsonCmdReceive["ssid"], jsonCmdReceive["password"]);
-    break;
-  case CMD_SET_STA:
-    wifiModeSTA(jsonCmdReceive["ssid"], jsonCmdReceive["password"]);
-    break;
-  case CMD_WIFI_APSTA:
-    wifiModeAPSTA(
-      jsonCmdReceive["ap_ssid"],
-      jsonCmdReceive["ap_password"],
-      jsonCmdReceive["sta_ssid"],
-      jsonCmdReceive["sta_password"]);
-    break;
-  case CMD_WIFI_INFO:
-    wifiStatusFeedback();
-    break;
-  case CMD_WIFI_CONFIG_CREATE_BY_STATUS:
-    createWifiConfigFileByStatus();
-    break;
-  case CMD_WIFI_CONFIG_CREATE_BY_INPUT:
-    createWifiConfigFileByInput(
-      jsonCmdReceive["mode"],
-      jsonCmdReceive["ap_ssid"],
-      jsonCmdReceive["ap_password"],
-      jsonCmdReceive["sta_ssid"],
-      jsonCmdReceive["sta_password"]);
-    break;
-  case CMD_WIFI_STOP:
-    wifiStop();
     break;
 
   // ── Servo settings ────────────────────────────────────────────────────────

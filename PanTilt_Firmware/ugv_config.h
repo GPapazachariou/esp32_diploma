@@ -58,12 +58,6 @@ bool          heartbeatStopFlag  = false;
 int  feedbackFlowExtraDelay = 100;
 bool uartCmdEcho = true;
 
-// ─── WiFi / MAC ───────────────────────────────────────────────────────────────
-String thisMacStr;
-
-// ─── Web / HTTP feedback buffer ───────────────────────────────────────────────
-String jsonFeedbackWeb = "";
-
 // ─── IMU data ─────────────────────────────────────────────────────────────────
 double icm_pitch = 0, icm_roll = 0, icm_yaw = 0, icm_temp = 0;
 unsigned long last_imu_update = 0;
